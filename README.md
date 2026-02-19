@@ -32,7 +32,7 @@ This is currently under development, but will soon be added inside the json file
 Matter of fact, any and all information will be under the json file. If other performance metrics are added, they may be under a different category (ie, CPU, GPU, etc)
 
 ## How values are stored:
-All values are stored in the json as the raw value, so for "GPU Utilization", for 45%, it will show as 45.0 in jeson, an exact copy of the HWiNFO values.
+All values are stored in the json as-is, so for "GPU Utilization", for 45%, it will show as `45.0 %` in the json file, a decimal with a space between the numerical value and the unit, giving you the ability to either remove the unit(s), remove the space, remove the decimal, or just display it as-is.
 
 The only thing this does not store is the units, so 1,500 MB will be stored as only 1500.0. Cross referencing with HWiNFO is recommended when making a wallpaper using these values.
 
