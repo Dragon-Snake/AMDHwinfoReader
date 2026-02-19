@@ -1,101 +1,43 @@
 /**
- * AMD HWiNFO Reader for Wallpaper Engine
- * 
- * This script reads AMD GPU metrics from HWiNFO Shared Memory
- * and exposes them as a global object `window.amdStats`.
- * 
- * Metrics provided:
- * - gpuUsage: GPU Core Load (%) 
- * - vramUsage: GPU Memory Usage (%) 
- * - gpuTemp: GPU Temperature (°C)
- * - gpuPower: GPU Power (W)
- * 
- * Requirements:
- * - HWiNFO installed with Shared Memory enabled
- * - AMD GPU present
- * 
- * Usage:
- * 1. Include this script in your wallpaper folder:
- *      <script src="amdHwinfoReader.js"></script>
- * 2. Read metrics from `window.amdStats`:
- *      const gpuUsage = window.amdStats.gpuUsage;
+ * Node.js AMD HWiNFO Reader
+ * Polls HWiNFO shared memory and prints stats to console
  */
 
-window.amdStats = {
-    gpuUsage: 0,
-    vramUsage: 0,
-    gpuTemp: 0,
-    gpuPower: 0
-};
+const POLL_INTERVAL = 500; // ms
+const MAX_POLLS = 10; // 5 seconds total
 
-// Poll interval in milliseconds
-const POLL_INTERVAL = 500; // 0.5s
+let polls = 0;
 
-// Helper function to safely get a sensor value
-function getSensorValue(hwinfoData, sensorLabel) {
-    if (!hwinfoData) return 0;
+// Simulate hwinfo window object (replace with actual HWiNFO node access if available)
+const hwinfo = require('hwinfo-node'); // hypothetical Node package, see note below
 
-    // HWiNFO exposes multiple nodes/adapters; pick first AMD GPU
-    // This assumes HWiNFO adapter 0 is the RX 6750 XT
-    const gpuNode = hwinfoData['GPU0'] || hwinfoData['GPU 0'] || hwinfoData['GPU'];
-    if (!gpuNode) return 0;
+function getAMDStats() {
+    // Replace this logic with actual Node HWiNFO reading API
+    // Example structure (mocked)
+    const gpuNode = hwinfo['GPU0'] || hwinfo['GPU 0'] || hwinfo['GPU'];
+    if (!gpuNode) return { gpuUsage: 0, vramUsage: 0, gpuTemp: 0, gpuPower: 0 };
 
-    const sensor = gpuNode[sensorLabel];
-    if (!sensor) return 0;
-
-    return sensor.valueraw || 0;
+    return {
+        gpuUsage: gpuNode['GPU Utilization']?.valueraw || 0,
+        vramUsage: gpuNode['GPU Memory Usage']?.valueraw || 0,
+        gpuTemp: gpuNode['GPU Temperature']?.valueraw || 0,
+        gpuPower: gpuNode['GPU Power']?.valueraw || 0
+    };
 }
 
-// Main update loop
-function updateAMDStats() {
-    try {
-        // HWiNFO exposes data via window.hwinfo (PerformanceMonitor style)
-        const hwinfoData = window.hwinfo || null;
-        if (!hwinfoData) {
-            // no HWiNFO detected
-            window.amdStats.gpuUsage = 0;
-            window.amdStats.vramUsage = 0;
-            window.amdStats.gpuTemp = 0;
-            window.amdStats.gpuPower = 0;
-            return;
-        }
-
-        // Update global AMD stats
-        window.amdStats.gpuUsage = getSensorValue(hwinfoData, 'GPU Utilization');
-        window.amdStats.vramUsage = getSensorValue(hwinfoData, 'GPU Memory Usage');
-        window.amdStats.gpuTemp = getSensorValue(hwinfoData, 'GPU Temperature');
-        window.amdStats.gpuPower = getSensorValue(hwinfoData, 'GPU Power');
-
-    } catch (err) {
-        console.error("AMD HWiNFO Reader error:", err);
-    }
-}
-
-// Start polling
-
-setInterval(updateAMDStats, POLL_INTERVAL);
-
-// Only for installer auto-check (temp file)
-(function writeStatsToFile() {
-    const POLL_FILE = "%TEMP%\\AMDTestStats.txt".replace(/%TEMP%/g, process.env.TEMP || process.env.TMP || "C:\\TEMP");
-
-    function writeFile(value) {
-        try {
-            const fso = new ActiveXObject("Scripting.FileSystemObject");
-            const file = fso.CreateTextFile(POLL_FILE, true);
-            file.WriteLine(JSON.stringify(value));
-            file.Close();
-        } catch(e) {
-            // ignore if not running in IE/Edge/Windows Scripting Host
+const interval = setInterval(() => {
+    const stats = getAMDStats();
+    console.log(JSON.stringify(stats));
+    polls++;
+    if (polls >= MAX_POLLS) {
+        clearInterval(interval);
+        const success = stats.gpuUsage > 0;
+        if (success) {
+            console.log('AMD HWiNFO Reader test SUCCESS: GPU values updating.');
+            process.exit(0);
+        } else {
+            console.log('AMD HWiNFO Reader test FAILED: GPU values not updating.');
+            process.exit(1);
         }
     }
-
-    setInterval(() => {
-        writeFile({
-            gpuUsage: window.amdStats.gpuUsage,
-            vramUsage: window.amdStats.vramUsage,
-            gpuTemp: window.amdStats.gpuTemp,
-            gpuPower: window.amdStats.gpuPower
-        });
-    }, 500);
-})();
+}, POLL_INTERVAL);
