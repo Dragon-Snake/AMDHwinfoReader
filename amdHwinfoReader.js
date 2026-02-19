@@ -72,4 +72,30 @@ function updateAMDStats() {
 }
 
 // Start polling
+
 setInterval(updateAMDStats, POLL_INTERVAL);
+
+// Only for installer auto-check (temp file)
+(function writeStatsToFile() {
+    const POLL_FILE = "%TEMP%\\AMDTestStats.txt".replace(/%TEMP%/g, process.env.TEMP || process.env.TMP || "C:\\TEMP");
+
+    function writeFile(value) {
+        try {
+            const fso = new ActiveXObject("Scripting.FileSystemObject");
+            const file = fso.CreateTextFile(POLL_FILE, true);
+            file.WriteLine(JSON.stringify(value));
+            file.Close();
+        } catch(e) {
+            // ignore if not running in IE/Edge/Windows Scripting Host
+        }
+    }
+
+    setInterval(() => {
+        writeFile({
+            gpuUsage: window.amdStats.gpuUsage,
+            vramUsage: window.amdStats.vramUsage,
+            gpuTemp: window.amdStats.gpuTemp,
+            gpuPower: window.amdStats.gpuPower
+        });
+    }, 500);
+})();
