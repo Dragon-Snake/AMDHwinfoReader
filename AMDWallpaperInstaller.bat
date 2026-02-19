@@ -58,6 +58,12 @@ echo Installing service...
 "%PYTHON_EXE%" "%SCRIPT_PATH%" install
 
 REM -------------------------------
+REM Set service to auto-start
+REM -------------------------------
+echo Configuring service to start automatically...
+sc config AMDPerfMonitor start= auto
+
+REM -------------------------------
 REM Start the service
 REM -------------------------------
 echo Starting service...
@@ -66,3 +72,4 @@ echo Starting service...
 echo Done!
 pause
 ENDLOCAL
+
