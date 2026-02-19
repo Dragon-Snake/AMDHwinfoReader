@@ -1,61 +1,68 @@
 @echo off
-chcp 65001 >nul
-title AMD HWiNFO Reader Installer & Runner
+SETLOCAL ENABLEDELAYEDEXPANSION
 
-echo ===========================================
-echo AMD HWiNFO Reader Installer & Runner
-echo ===========================================
-echo.
+REM -------------------------------
+REM Configuration
+REM -------------------------------
+SET SCRIPT_URL=https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/refs/heads/main/amd_hwinfo_monitor.py
+SET SCRIPT_PATH=%ProgramData%\AMDPerformanceMonitor\amd_hwinfo_monitor.py
 
-REM -------------------------
-REM Step 1: Check Python installation
-REM -------------------------
-python --version >nul 2>&1
-if errorlevel 1 (
-    echo Python was not found. Please install Python:
-    echo https://www.python.org/downloads/
-    pause
-    exit /b 1
+REM -------------------------------
+REM Detect Python
+REM -------------------------------
+SET PYTHON_EXE=
+
+for /f "tokens=*" %%i in ('where python 2^>nul') do (
+    SET PYTHON_EXE=%%i
+    goto :found_python
 )
-echo Python found:
-python --version
-echo.
 
-REM -------------------------
-REM Step 2: Create install folder
-REM -------------------------
-set INSTALL_DIR=%ProgramFiles%\AMDPerformanceMonitor
-if not exist "%INSTALL_DIR%" (
-    mkdir "%INSTALL_DIR%"
-    if %ERRORLEVEL% neq 0 (
-        echo ERROR: Could not create folder. Try running as Administrator.
-        pause
-        exit /b 1
-    )
-)
-echo Installing to: %INSTALL_DIR%
-echo.
-
-REM -------------------------
-REM Step 3: Download Python script from GitHub
-REM -------------------------
-echo Downloading amd_hwinfo_monitor.py from GitHub...
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/refs/heads/main/amd_hwinfo_monitor.py' -OutFile '%INSTALL_DIR%\amd_hwinfo_monitor.py'"
-if %ERRORLEVEL% neq 0 (
-    echo ERROR: Failed to download Python script.
-    pause
-    exit /b 1
-)
-echo Download complete.
-echo.
-
-REM -------------------------
-REM Step 4: Run Python script
-REM -------------------------
-echo Running AMD HWInfo Monitor...
-python "%INSTALL_DIR%\amd_hwinfo_monitor.py"
-
-echo.
-echo AMD HWInfo Monitor stopped.
+echo Python not found in PATH. Please install Python 3.10+ and add it to PATH.
 pause
 exit /b
+
+:found_python
+echo Using Python at: %PYTHON_EXE%
+
+REM -------------------------------
+REM Create directories
+REM -------------------------------
+if not exist "%ProgramData%\AMDPerformanceMonitor" (
+    mkdir "%ProgramData%\AMDPerformanceMonitor"
+)
+
+REM -------------------------------
+REM Install required Python packages
+REM -------------------------------
+echo Installing required Python packages...
+
+"%PYTHON_EXE%" -m pip install --upgrade pip
+"%PYTHON_EXE%" -m pip install requests pywin32
+
+IF ERRORLEVEL 1 (
+    echo Failed to install required packages. Please install requests and pywin32 manually.
+    pause
+    exit /b
+)
+
+REM -------------------------------
+REM Download Python script
+REM -------------------------------
+echo Downloading AMD HWInfo monitor...
+powershell -Command "Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%SCRIPT_PATH%'"
+
+REM -------------------------------
+REM Install the service
+REM -------------------------------
+echo Installing service...
+"%PYTHON_EXE%" "%SCRIPT_PATH%" install
+
+REM -------------------------------
+REM Start the service
+REM -------------------------------
+echo Starting service...
+"%PYTHON_EXE%" "%SCRIPT_PATH%" start
+
+echo Done!
+pause
+ENDLOCAL
