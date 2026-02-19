@@ -19,6 +19,11 @@ First, isntall HWiNFO here: `https://www.hwinfo.com/download/` and download the 
 
 Go to HWiNFOPerfMonInstaller.bat, click "Download raw file', then right click -> run as administrator, Requests and pywin32 should autoinstall. Ensure it is running as administrator.
 
+To enable the values that you want, go to sensors -> settings (bottom right) -> HWiNFO Gadget, then click on the values you want -> check "Report Value in Gadget"
+If you want all values, you can click the value on the bottom, or right below gpu #0, then shift click to the opposit end, and you can enable it for all of them at once. Do not that "Enable Reporting to Gadget" is a universal option.
+
+After you started HWiNFO as administrator, and enabled the values you want, you can safely close HWiNFO without the service will not stop, it will continue to update values as long as both HWiNFO is running in the background and the service is running.
+
 ## Update guide:
 It should auto update as I update this repository. As the version increases, it should auto update for you. If not, rerun the `HWiNFOPerfMonInstaller.bat` file, as it has a built-in update function. Do the same to repair the install if it isn't functioning properlly.
 
@@ -41,6 +46,8 @@ Matter of fact, any and all information will be under the json file. If other pe
 All values are stored in the json as-is, so for "GPU Utilization", for 45%, it will show as `45.0 %` in the json file, a decimal with a space between the numerical value and the unit, giving you the ability to either remove the unit(s), remove the space, remove the decimal, or just display it as-is.
 
 The only thing this does not store is the units, so 1,500 MB will be stored as only 1500.0. Cross referencing with HWiNFO is recommended when making a wallpaper using these values.
+
+The following image should server as a good example, and to show every single GPU value from HWiNFO (at leadt, every single value that a 6750 xt has, the amount of keys may differ per GPU)
 
 <img width="621" height="1083" alt="image" src="https://github.com/user-attachments/assets/47ffbf84-5e7d-4844-ba4f-3d5cabc0af42" />
 
