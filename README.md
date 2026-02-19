@@ -7,6 +7,8 @@ If there are any issues, there is a troubleshooting section at the very bottom. 
 
 If there is anything I missed, or failed to address, please let me know via DM.
 
+Also, given that this outputs JSON, you can use this for a lot more than just wallpapers. Wanna make something that tracks GPU stats over time? Graph your temps over days and days for you? This outputs JSON, so compatibility is easy. Though, I assume there are already things for it, but for niche use cases, this may be your answer. Though, it only supports GPU stats as of now.
+
 # For installation:
 
 ## Requirements:
