@@ -1,81 +1,61 @@
 @echo off
-title AMD HWiNFO Reader Installer (GitHub)
+chcp 65001 >nul
+title AMD HWiNFO Reader Installer & Runner
 
 echo ===========================================
-echo AMD HWiNFO Reader Installer (GitHub)
+echo AMD HWiNFO Reader Installer & Runner
 echo ===========================================
 echo.
 
-REM Step 1: Default install folder
-set INSTALL_DIR=%ProgramFiles%\AMD Performance Monitor
-echo Installing to: %INSTALL_DIR%
+REM -------------------------
+REM Step 1: Check Python installation
+REM -------------------------
+python --version >nul 2>&1
+if errorlevel 1 (
+    echo Python was not found. Please install Python:
+    echo https://www.python.org/downloads/
+    pause
+    exit /b 1
+)
+echo Python found:
+python --version
+echo.
 
-REM Step 2: Create folder if it doesn't exist
+REM -------------------------
+REM Step 2: Create install folder
+REM -------------------------
+set INSTALL_DIR=%ProgramFiles%\AMDPerformanceMonitor
 if not exist "%INSTALL_DIR%" (
     mkdir "%INSTALL_DIR%"
     if %ERRORLEVEL% neq 0 (
         echo ERROR: Could not create folder. Try running as Administrator.
         pause
-        exit /b
+        exit /b 1
     )
 )
+echo Installing to: %INSTALL_DIR%
+echo.
 
-REM Step 3: Download amdHwinfoReader.js from GitHub
-echo Downloading latest amdHwinfoReader.js from GitHub...
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amdHwinfoReader.js' -OutFile '%INSTALL_DIR%\amdHwinfoReader.js'"
-
+REM -------------------------
+REM Step 3: Download Python script from GitHub
+REM -------------------------
+echo Downloading amd_hwinfo_monitor.py from GitHub...
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/refs/heads/main/amd_hwinfo_monitor.py' -OutFile '%INSTALL_DIR%\amd_hwinfo_monitor.py'"
 if %ERRORLEVEL% neq 0 (
-    echo ERROR: Failed to download amdHwinfoReader.js
+    echo ERROR: Failed to download Python script.
     pause
-    exit /b
+    exit /b 1
 )
-
-REM Step 4: Check if HWiNFO64.exe is running
-echo Checking for HWiNFO64...
-tasklist /FI "IMAGENAME eq HWiNFO64.exe" | find /I "HWiNFO64.exe" >nul
-if %ERRORLEVEL% neq 0 (
-    echo WARNING: HWiNFO64 is not running. Please start HWiNFO with Shared Memory enabled.
-    set /p cont="Press ENTER to continue anyway or Ctrl+C to exit..."
-)
-
-REM Step 5: Test script polling (simulated check)
+echo Download complete.
 echo.
-echo Testing AMD HWiNFO Reader...
-set TEST_HTML=%TEMP%\AMDTest.html
 
-(
-echo ^<!DOCTYPE html^>
-echo ^<html^>
-echo ^<head^>
-echo ^<title^>AMD Test^</title^>
-echo ^<script src="%INSTALL_DIR%\amdHwinfoReader.js"^>^</script^>
-echo ^</head^>
-echo ^<body^>
-echo ^<script^>
-echo setTimeout(function() {^
-echo     if(window.amdStats) {^
-echo         alert("AMD HWiNFO Reader loaded successfully! GPU Usage: " + window.amdStats.gpuUsage + "%%");^
-echo     } else {^
-echo         alert("Failed to load AMD HWiNFO Reader or HWiNFO not running.");^
-echo     }^
-echo }, 2000);^
-echo ^</script^>
-echo ^</body^>
-echo ^</html^>
-) > "%TEST_HTML%"
-
-start "" "%TEST_HTML%"
+REM -------------------------
+REM Step 4: Run Python script
+REM -------------------------
+echo Running AMD HWInfo Monitor...
+python "%INSTALL_DIR%\amd_hwinfo_monitor.py"
 
 echo.
-echo Please check the alert box. If it shows GPU usage, the install is successful.
+echo AMD HWInfo Monitor stopped.
 pause
-
-echo.
-echo ===========================================
-echo INSTALLATION COMPLETE
-echo AMD HWiNFO Reader installed to: %INSTALL_DIR%
-echo ===========================================
-pause
-
 exit /b
-
