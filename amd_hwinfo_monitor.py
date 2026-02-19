@@ -141,23 +141,14 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         self.running = True
 
         # Start monitor thread
-        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
+        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=False)
         self.monitor_thread.start()
 
         # Start update check thread
-        self.update_thread = threading.Thread(target=self.update_loop, daemon=True)
+        self.update_thread = threading.Thread(target=self.update_loop, daemon=False)
         self.update_thread.start()
 
         win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
-
-def update_loop(self):
-    last_check = 0
-    while self.running:
-        now = time.time()
-        if now - last_check > UPDATE_CHECK_INTERVAL:
-            check_for_updates()
-            last_check = now
-        time.sleep(60)  # sleep 1 minute to avoid busy-waiting
 
     def monitor_loop(self):
         while self.running:
@@ -167,8 +158,17 @@ def update_loop(self):
                     json.dump(stats, f, ensure_ascii=False, indent=2)
                 logger.info(f"GPU Stats Updated: {len(stats['gpu'])} sensors")
             except Exception as e:
-                logger.error(f"Error collecting AMD stats: {e}")
+                logger.exception(f"Error collecting AMD stats: {e}")
             time.sleep(self.config.get("poll_interval", 1))
+
+    def update_loop(self):
+        last_check = 0
+        while self.running:
+            now = time.time()
+            if now - last_check > UPDATE_CHECK_INTERVAL:
+                check_for_updates()
+                last_check = now
+            time.sleep(60)
 
 
 # -------------------------
@@ -177,6 +177,7 @@ def update_loop(self):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
