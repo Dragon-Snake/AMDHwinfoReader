@@ -42,6 +42,9 @@ All values are stored in the json as-is, so for "GPU Utilization", for 45%, it w
 
 The only thing this does not store is the units, so 1,500 MB will be stored as only 1500.0. Cross referencing with HWiNFO is recommended when making a wallpaper using these values.
 
+<img width="621" height="1083" alt="image" src="https://github.com/user-attachments/assets/47ffbf84-5e7d-4844-ba4f-3d5cabc0af42" />
+
+
 # Compatibility:
 
 ## WHat GPU's does this support:
