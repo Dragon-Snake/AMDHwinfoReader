@@ -12,6 +12,9 @@ Reads and helps display AMD GPU stats from HWiNFO to a wallpaper in wallpaper en
 Should auto-start after install. Needs no further action after install. Any wallpaper using this should be "plug-and-play", already having preset keys for usage.
 For any errors or compatibility issues, always contact wallpaper maker first, since, odds are, their wallpaper is out of date, or has some typo.
 
+## Installation guide:
+Go to HWiNFOPerfMonInstaller.bat, click "download raw', then right click -> run as administrator
+
 # For wallpaper developers:
 
 ## Where to find GPU information:
