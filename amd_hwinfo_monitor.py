@@ -92,7 +92,7 @@ def read_hwinfo_sensors():
             while True:
                 try:
                     label = winreg.QueryValueEx(key, f"Label{i}")[0]
-                    value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
+                    value_raw = winreg.QueryValueEx(key, f"Value{i}")[0]
                     if label:
                         sensors[label] = value_raw
                     i += 1
@@ -177,6 +177,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
