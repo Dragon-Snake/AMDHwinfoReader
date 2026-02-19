@@ -17,6 +17,29 @@ import win32service
 import win32serviceutil
 import win32event
 import servicemanager
+import requests
+
+# -------------------------
+# Update Checker
+# -------------------------
+
+CURRENT_VERSION = "0.0.0.1"
+VERSION_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/version.txt"
+UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
+
+def check_for_updates():
+    try:
+        r = requests.get(VERSION_URL, timeout=5)
+        if r.status_code == 200:
+            latest_version = r.text.strip()
+            if latest_version != CURRENT_VERSION:
+                logger.info(f"New version available: {latest_version} (current: {CURRENT_VERSION})")
+            else:
+                logger.info("You are running the latest version.")
+        else:
+            logger.warning(f"Failed to check updates (status code {r.status_code})")
+    except Exception as e:
+        logger.warning(f"Error checking updates: {e}")
 
 # -------------------------
 # Config and Logging
@@ -138,3 +161,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
