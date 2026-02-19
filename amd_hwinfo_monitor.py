@@ -137,11 +137,27 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         win32event.SetEvent(self.hWaitStop)
 
     def SvcDoRun(self):
-        logger.info("AMD Performance Monitor Service starting...")
-        self.running = True
-        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
-        self.monitor_thread.start()
-        win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
+    logger.info("AMD Performance Monitor Service starting...")
+    self.running = True
+
+    # Start monitor thread
+    self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
+    self.monitor_thread.start()
+
+    # Start update check thread
+    self.update_thread = threading.Thread(target=self.update_loop, daemon=True)
+    self.update_thread.start()
+
+    win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
+
+def update_loop(self):
+    last_check = 0
+    while self.running:
+        now = time.time()
+        if now - last_check > UPDATE_CHECK_INTERVAL:
+            check_for_updates()
+            last_check = now
+        time.sleep(60)  # sleep 1 minute to avoid busy-waiting
 
     def monitor_loop(self):
         while self.running:
@@ -161,4 +177,5 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
