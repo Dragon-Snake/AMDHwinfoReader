@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AMD Performance Monitor Service (HWiNFO only, local)
+AMD Performance Monitor (HWiNFO only, local)
 Reads AMD GPU stats from HWiNFO and saves to performance.json locally.
 """
 
@@ -9,11 +9,8 @@ import os
 import sys
 import json
 import time
-import threading
 import logging
 from pathlib import Path
-
-# Windows service libraries
 import winreg
 
 # -------------------------
@@ -57,6 +54,7 @@ def load_config():
             logger.warning(f"Failed to load config.json: {e}")
     return DEFAULT_CONFIG.copy()
 
+
 def read_hwinfo_sensors(adapter_index=0):
     """Read HWiNFO sensors for AMD GPU from registry"""
     sensors = {}
@@ -77,6 +75,7 @@ def read_hwinfo_sensors(adapter_index=0):
         logger.warning(f"Failed to read HWiNFO registry: {e}")
     return sensors
 
+
 def collect_amd_stats(config):
     """Return a dict of AMD GPU stats only"""
     data = {"timestamp": time.time()}
@@ -87,62 +86,31 @@ def collect_amd_stats(config):
     return data
 
 # -------------------------
-# Windows Service
+# Main Loop
 # -------------------------
 
-class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
-    _svc_name_ = "AMDPerfMonitor"
-    _svc_display_name_ = "AMD Performance Monitor Service"
-    _svc_description_ = "Monitors AMD GPU stats from HWiNFO (local, no web service)"
+def main():
+    config = load_config()
+    data_file = PROGRAM_DATA_DIR / "performance.json"
 
-    def __init__(self, args):
-        super().__init__(args)
-        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
-        self.running = False
-        self.config = load_config()
-        self.data_file = PROGRAM_DATA_DIR / "performance.json"
-        self.monitor_thread = None
+    logger.info("Starting AMD HWInfo monitor (local)...")
+    print("Press Ctrl+C to stop.")
 
-    def SvcStop(self):
-        logger.info("Service stop requested")
-        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-        win32event.SetEvent(self.hWaitStop)
-        self.running = False
+    try:
+        while True:
+            stats = collect_amd_stats(config)
 
-    def SvcDoRun(self):
-        logger.info("AMD Performance Monitor starting...")
-        self.running = True
-        self.main()
+            # Save to JSON
+            with open(data_file, "w", encoding="utf-8") as f:
+                json.dump(stats, f, ensure_ascii=False, indent=2)
 
-    # -------------------------
-    # Monitoring Loop
-    # -------------------------
+            # Print stats to terminal
+            print(f"[{time.strftime('%H:%M:%S')}] GPU Stats: {stats['gpu']}")
 
-    def update_loop(self):
-        while self.running:
-            try:
-                stats = collect_amd_stats(self.config)
-                with open(self.data_file, "w", encoding="utf-8") as f:
-                    json.dump(stats, f, ensure_ascii=False, indent=2)
-                logger.debug(f"Stats updated: {stats}")
-            except Exception as e:
-                logger.error(f"Error updating stats: {e}")
-            time.sleep(self.config.get("poll_interval", 1))
+            time.sleep(config.get("poll_interval", 1))
+    except KeyboardInterrupt:
+        logger.info("AMD HWInfo monitor stopped by user.")
 
-    # -------------------------
-    # Main
-    # -------------------------
-
-    def main(self):
-        self.monitor_thread = threading.Thread(target=self.update_loop, daemon=True)
-        self.monitor_thread.start()
-        logger.info("Monitoring loop started")
-        win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
-
-# -------------------------
-# Run Service
-# -------------------------
 
 if __name__ == "__main__":
-    win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
-
+    main()
