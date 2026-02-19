@@ -14,11 +14,7 @@ import logging
 from pathlib import Path
 
 # Windows service libraries
-import win32service
-import win32serviceutil
-import win32event
 import winreg
-import servicemanager
 
 # -------------------------
 # Config and Logging
@@ -149,3 +145,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
