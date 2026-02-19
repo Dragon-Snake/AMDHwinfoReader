@@ -55,24 +55,38 @@ def load_config():
     return DEFAULT_CONFIG.copy()
 
 
-def read_hwinfo_sensors(adapter_index=0):
-    """Read HWiNFO sensors for AMD GPU from registry"""
+def read_hwinfo_sensors(test=False):
     sensors = {}
-    try:
-        base_path = r"SOFTWARE\HWiNFO64\VSB"
-        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_path) as key:
-            i = 0
-            while True:
-                try:
-                    label = winreg.QueryValueEx(key, f"Label{i}")[0]
-                    value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
-                    if label and "GPU" in label:
+    paths_to_try = []
+
+    # HKEY_LOCAL_MACHINE first
+    paths_to_try.append((winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\HWiNFO64\VSB"))
+
+    # HKEY_USERS for current user SID
+    sid = os.popen('whoami /user /fo csv /nh').read().strip().split(',')[1].replace('"','')
+    paths_to_try.append((winreg.HKEY_USERS, fr"{sid}\SOFTWARE\HWiNFO64\VSB"))
+
+    for root, path in paths_to_try:
+        try:
+            with winreg.OpenKey(root, path) as key:
+                i = 0
+                while True:
+                    try:
+                        label = winreg.QueryValueEx(key, f"Label{i}")[0]
+                        value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
+
+                        if test:
+                            print(f"[TEST] Label{i}: {label}, ValueRaw{i}: {value_raw}")
+
                         sensors[label] = value_raw
-                    i += 1
-                except FileNotFoundError:
-                    break
-    except Exception as e:
-        logger.warning(f"Failed to read HWiNFO registry: {e}")
+                        i += 1
+                    except FileNotFoundError:
+                        break
+        except FileNotFoundError:
+            continue
+        except Exception as e:
+            print(f"Error reading {path}: {e}")
+
     return sensors
 
 
@@ -125,7 +139,7 @@ def main():
     # One-time test print of all HWiNFO labels
     print("=== HWiNFO Registry Labels (Test) ===")
     read_hwinfo_sensors(test=True)
-    print("=== End Test ===\n")
+    print("=== End Test ===")
 
     try:
         while True:
@@ -145,5 +159,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
