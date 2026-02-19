@@ -22,7 +22,7 @@ if not exist "%INSTALL_DIR%" (
 
 REM Step 3: Download amdHwinfoReader.js from GitHub
 echo Downloading latest amdHwinfoReader.js from GitHub...
-powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/refs/heads/main/amdHwinfoReader.js' -OutFile '%INSTALL_DIR%\amdHwinfoReader.js'"
+powershell -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amdHwinfoReader.js' -OutFile '%INSTALL_DIR%\amdHwinfoReader.js'"
 
 if %ERRORLEVEL% neq 0 (
     echo ERROR: Failed to download amdHwinfoReader.js
@@ -78,3 +78,4 @@ echo ===========================================
 pause
 
 exit /b
+
