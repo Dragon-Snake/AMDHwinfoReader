@@ -10,7 +10,10 @@ Reads and helps display AMD GPU stats from HWiNFO to a wallpaper in wallpaper en
 
 ## Installation guide:
 First, isntall HWiNFO here: `https://www.hwinfo.com/download/` and download the 64 version, this will currently not work with 32 and portable version.
-Go to HWiNFOPerfMonInstaller.bat, click "Download raw file', then right click -> run as administrator, Requests and pywin32 should autoinstall.
+Go to HWiNFOPerfMonInstaller.bat, click "Download raw file', then right click -> run as administrator, Requests and pywin32 should autoinstall. Ensure it is running as administrator.
+
+## Update guide:
+It should auto update as I update this repository. As the version increases, it should auto update for you. If not, rerun the `HWiNFOPerfMonInstaller.bat` file, as it has a built-in update function. Do the same to repair the install if it isn't functioning properlly.
 
 ## Usage:
 Should auto-start after install. Needs no further action after install. Any wallpaper using this should be "plug-and-play", already having preset keys for usage.
@@ -50,3 +53,15 @@ In theory, yes. As long as HWiNFO displays X and Y GPU as GPU #0, it should work
 
 ## Can I install this on Windows 10?
 I am on windows 11, but you are free to test if it works or not. It should though.
+
+## Can I use psutils/any other performance monitor?
+Currently, no. As of right now, it is hard coded for HWiNFO.
+Whether support will be added in the future is another question, but for now, it is only working with HWiNFO.
+
+## Why aren't my stats updating/displaying?
+Did you follow the install steps? if so, do you have hypervisor (hyper-v) enabled (it should not be, so run `system info`, and if you see "A hypervisor has been detected", run `bcdedit /set hypervisorlaunchtype off` and restart.
+If that didd not fix it, then do you have Hardware-accelerated GPU scheduling on? If so, turn that off and see if that fixes it.
+If it still doesn't work, try turning HWiNFO from 'safe mode' to 'low-level IO access'.
+If that did not fix it, check your GPU drivers for updates, and try disabling some of the overlay settings.
+If it is still not working, do you have MSI Afterburner installed? If so, try disabling/uninstalling it and see if that fixes it.
+If it somehow still does not work, check 'performance' under task manager to see if that is showing the correct stats. If so, then there is some issue/conflict that I have not ran into yet with HWiNFO, and likely has to do with either GPU drivers, or your system/OS or some other issue I have little/no knowledge of.
