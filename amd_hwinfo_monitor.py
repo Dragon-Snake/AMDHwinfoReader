@@ -18,28 +18,114 @@ import win32serviceutil
 import win32event
 import servicemanager
 import requests
+import re
+import subprocess
 
 # -------------------------
 # Update Checker
 # -------------------------
 
 CURRENT_VERSION = "0.0.0.1"
-VERSION_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/version.txt"
+SCRIPT_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amd_hwinfo_monitor.py"
+SERVICE_NAME = "AMDPerfMonitor"
 UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
+
+def parse_version(version_str):
+    return tuple(int(x) for x in version_str.split("."))
+
+
+def is_newer_version(remote, local):
+    return parse_version(remote) > parse_version(local)
+
+def extract_version_from_script(script_text):
+    match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', script_text)
+    return match.group(1) if match else None
+
+def extract_version_from_script(script_text):
+    """
+    Extracts CURRENT_VERSION = "x.x.x.x" from script text
+    """
+    match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', script_text)
+    if match:
+        return match.group(1)
+    return None
 
 def check_for_updates():
     try:
-        r = requests.get(VERSION_URL, timeout=5)
-        if r.status_code == 200:
-            latest_version = r.text.strip()
-            if latest_version != CURRENT_VERSION:
-                logger.info(f"New version available: {latest_version} (current: {CURRENT_VERSION})")
-            else:
-                logger.info("You are running the latest version.")
-        else:
-            logger.warning(f"Failed to check updates (status code {r.status_code})")
+        logger.info("Checking for updates...")
+
+        r = requests.get(SCRIPT_URL, timeout=10)
+        if r.status_code != 200:
+            logger.warning(f"Failed to download script ({r.status_code})")
+            return
+
+        remote_script = r.text
+        remote_version = extract_version_from_script(remote_script)
+
+        if not remote_version:
+            logger.warning("Could not extract remote version.")
+            return
+
+        logger.info(f"Remote: {remote_version} | Local: {CURRENT_VERSION}")
+
+        if not is_newer_version(remote_version, CURRENT_VERSION):
+            logger.info("Already up to date.")
+            return
+
+        logger.info(f"New version available: {remote_version}")
+        perform_update(remote_script, remote_version)
+
     except Exception as e:
-        logger.warning(f"Error checking updates: {e}")
+        logger.warning(f"Update check failed: {e}")
+
+def perform_update(new_script_text, new_version):
+    try:
+        logger.info("Preparing update...")
+
+        current_file = Path(sys.argv[0])
+        program_dir = current_file.parent
+
+        temp_file = program_dir / "amd_update.tmp"
+        backup_file = program_dir / "amd_backup.bak"
+        bat_file = program_dir / "update_restart.bat"
+
+        temp_file.write_text(new_script_text, encoding="utf-8")
+
+        bat_file.write_text(f"""@echo off
+sc stop {SERVICE_NAME}
+timeout /t 5 >nul
+
+echo Backing up current file...
+copy /y "{current_file}" "{backup_file}"
+
+echo Replacing file...
+copy /y "{temp_file}" "{current_file}"
+
+echo Starting service...
+sc start {SERVICE_NAME}
+timeout /t 5 >nul
+
+sc query {SERVICE_NAME} | find "RUNNING" >nul
+if errorlevel 1 (
+    echo Service failed to start. Restoring backup...
+    copy /y "{backup_file}" "{current_file}"
+    sc start {SERVICE_NAME}
+)
+
+del "{temp_file}"
+del "%~f0"
+""")
+
+        subprocess.Popen(
+            ["cmd", "/c", str(bat_file)],
+            creationflags=subprocess.CREATE_NO_WINDOW
+        )
+
+        logger.info("Update process launched.")
+
+    except Exception as e:
+        logger.exception(f"Update failed: {e}")
+
 
 # -------------------------
 # Config and Logging
@@ -177,6 +263,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
