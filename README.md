@@ -10,6 +10,7 @@ Reads and helps display AMD GPU stats from HWiNFO to a wallpaper in wallpaper en
 
 ## Installation guide:
 First, isntall HWiNFO here: `https://www.hwinfo.com/download/` and download the 64 version, this will currently not work with 32 and portable version.
+
 Go to HWiNFOPerfMonInstaller.bat, click "Download raw file', then right click -> run as administrator, Requests and pywin32 should autoinstall. Ensure it is running as administrator.
 
 ## Update guide:
@@ -17,6 +18,7 @@ It should auto update as I update this repository. As the version increases, it 
 
 ## Usage:
 Should auto-start after install. Needs no further action after install. Any wallpaper using this should be "plug-and-play", already having preset keys for usage.
+
 For any errors or compatibility issues, always contact wallpaper maker first, since, odds are, their wallpaper is out of date, or has some typo.
 
 # For wallpaper developers:
@@ -26,10 +28,12 @@ Gpu information should be stored at:"C:\ProgramData\AMDPerformanceMonitor\perfor
 
 ## Where to find GPU name:
 This is currently under development, but will soon be added inside the json file as well.
+
 Matter of fact, any and all information will be under the json file. If other performance metrics are added, they may be under a different category (ie, CPU, GPU, etc)
 
 ## How values are stored:
 All values are stored in the json as the raw value, so for "GPU Utilization", for 45%, it will show as 45.0 in jeson, an exact copy of the HWiNFO values.
+
 The only thing this does not store is the units, so 1,500 MB will be stored as only 1500.0. Cross referencing with HWiNFO is recommended when making a wallpaper using these values.
 
 # Compatibility:
@@ -60,8 +64,13 @@ Whether support will be added in the future is another question, but for now, it
 
 ## Why aren't my stats updating/displaying?
 Did you follow the install steps? if so, do you have hypervisor (hyper-v) enabled (it should not be, so run `system info`, and if you see "A hypervisor has been detected", run `bcdedit /set hypervisorlaunchtype off` and restart.
+
 If that didd not fix it, then do you have Hardware-accelerated GPU scheduling on? If so, turn that off and see if that fixes it.
+
 If it still doesn't work, try turning HWiNFO from 'safe mode' to 'low-level IO access'.
+
 If that did not fix it, check your GPU drivers for updates, and try disabling some of the overlay settings.
+
 If it is still not working, do you have MSI Afterburner installed? If so, try disabling/uninstalling it and see if that fixes it.
+
 If it somehow still does not work, check 'performance' under task manager to see if that is showing the correct stats. If so, then there is some issue/conflict that I have not ran into yet with HWiNFO, and likely has to do with either GPU drivers, or your system/OS or some other issue I have little/no knowledge of.
