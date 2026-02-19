@@ -138,7 +138,7 @@ def main():
 
     # One-time test print of all HWiNFO labels
     print("=== HWiNFO Registry Labels (Test) ===")
-    read_hwinfo_sensors(test=True)
+    read_hwinfo_sensors(test=False)
     print("=== End Test ===")
 
     try:
@@ -159,6 +159,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
