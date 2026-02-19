@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-AMD Performance Monitor (HWiNFO only, local)
-Reads AMD GPU stats from HWiNFO and saves to performance.json locally.
+AMD Performance Monitor Service (HWiNFO only)
+Runs in the background as a Windows Service and logs GPU stats to performance.json
 """
 
 import os
 import sys
 import json
 import time
+import threading
 import logging
 from pathlib import Path
 import winreg
+import win32service
+import win32serviceutil
+import win32event
+import servicemanager
 
 # -------------------------
 # Config and Logging
@@ -25,8 +30,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.FileHandler(LOG_FILE, encoding='utf-8'),
-        logging.StreamHandler()
+        logging.FileHandler(LOG_FILE, encoding='utf-8')
     ]
 )
 logger = logging.getLogger("AMDPerfMonitor")
@@ -55,55 +59,7 @@ def load_config():
     return DEFAULT_CONFIG.copy()
 
 
-def read_hwinfo_sensors(test=False):
-    sensors = {}
-    paths_to_try = []
-
-    # HKEY_LOCAL_MACHINE first
-    paths_to_try.append((winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\HWiNFO64\VSB"))
-
-    # HKEY_USERS for current user SID
-    sid = os.popen('whoami /user /fo csv /nh').read().strip().split(',')[1].replace('"','')
-    paths_to_try.append((winreg.HKEY_USERS, fr"{sid}\SOFTWARE\HWiNFO64\VSB"))
-
-    for root, path in paths_to_try:
-        try:
-            with winreg.OpenKey(root, path) as key:
-                i = 0
-                while True:
-                    try:
-                        label = winreg.QueryValueEx(key, f"Label{i}")[0]
-                        value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
-
-                        if test:
-                            print(f"[TEST] Label{i}: {label}, ValueRaw{i}: {value_raw}")
-
-                        sensors[label] = value_raw
-                        i += 1
-                    except FileNotFoundError:
-                        break
-        except FileNotFoundError:
-            continue
-        except Exception as e:
-            print(f"Error reading {path}: {e}")
-
-    return sensors
-
-
-def collect_amd_stats(config):
-    """Return a dict of AMD GPU stats only"""
-    data = {"timestamp": time.time()}
-    if config["collect"].get("hwinfo", True):
-        data["gpu"] = read_hwinfo_sensors(config.get("gpu_adapter", 0))
-    else:
-        data["gpu"] = {}
-    return data
-
-# -------------------------
-# Main Loop
-# -------------------------
-
-def read_hwinfo_sensors(adapter_index=0, test=False):
+def read_hwinfo_sensors():
     """Read HWiNFO sensors from registry"""
     sensors = {}
     try:
@@ -114,14 +70,8 @@ def read_hwinfo_sensors(adapter_index=0, test=False):
                 try:
                     label = winreg.QueryValueEx(key, f"Label{i}")[0]
                     value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
-
-                    if test:
-                        print(f"[TEST] Label{i}: {label}, ValueRaw{i}: {value_raw}")
-
-                    # Only collect GPU stats in normal mode
-                    if not test:
+                    if label:
                         sensors[label] = value_raw
-
                     i += 1
                 except FileNotFoundError:
                     break
@@ -129,37 +79,62 @@ def read_hwinfo_sensors(adapter_index=0, test=False):
         logger.warning(f"Failed to read HWiNFO registry: {e}")
     return sensors
 
-def main():
-    config = load_config()
-    data_file = PROGRAM_DATA_DIR / "performance.json"
 
-    logger.info("Starting AMD HWInfo monitor (local)...")
-    print("Press Ctrl+C to stop.")
+def collect_amd_stats(config):
+    """Return a dict of AMD GPU stats only"""
+    data = {"timestamp": time.time()}
+    if config["collect"].get("hwinfo", True):
+        data["gpu"] = read_hwinfo_sensors()
+    else:
+        data["gpu"] = {}
+    return data
 
-    # One-time test print of all HWiNFO labels
-    print("=== HWiNFO Registry Labels (Test) ===")
-    read_hwinfo_sensors(test=False)
-    print("=== End Test ===")
 
-    try:
-        while True:
-            stats = collect_amd_stats(config)
+# -------------------------
+# Windows Service
+# -------------------------
 
-            # Save to JSON
-            with open(data_file, "w", encoding="utf-8") as f:
-                json.dump(stats, f, ensure_ascii=False, indent=2)
+class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
+    _svc_name_ = "AMDPerfMonitor"
+    _svc_display_name_ = "AMD Performance Monitor Service"
+    _svc_description_ = "Monitors AMD GPU stats from HWiNFO and logs locally (no web service)."
 
-            # Print stats to terminal
-            print(f"[{time.strftime('%H:%M:%S')}] GPU Stats: {stats['gpu']}")
+    def __init__(self, args):
+        super().__init__(args)
+        self.hWaitStop = win32event.CreateEvent(None, 0, 0, None)
+        self.running = False
+        self.config = load_config()
+        self.data_file = PROGRAM_DATA_DIR / "performance.json"
+        self.monitor_thread = None
 
-            time.sleep(config.get("poll_interval", 1))
-    except KeyboardInterrupt:
-        logger.info("AMD HWInfo monitor stopped by user.")
+    def SvcStop(self):
+        logger.info("Service stop requested")
+        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        self.running = False
+        win32event.SetEvent(self.hWaitStop)
 
+    def SvcDoRun(self):
+        logger.info("AMD Performance Monitor Service starting...")
+        self.running = True
+        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
+        self.monitor_thread.start()
+        win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
+
+    def monitor_loop(self):
+        while self.running:
+            try:
+                stats = collect_amd_stats(self.config)
+                with open(self.data_file, "w", encoding="utf-8") as f:
+                    json.dump(stats, f, ensure_ascii=False, indent=2)
+                logger.info(f"GPU Stats Updated: {len(stats['gpu'])} sensors")
+            except Exception as e:
+                logger.error(f"Error collecting AMD stats: {e}")
+            time.sleep(self.config.get("poll_interval", 1))
+
+
+# -------------------------
+# Entry Point
+# -------------------------
 
 if __name__ == "__main__":
-    main()
-
-
-
-
+    win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
