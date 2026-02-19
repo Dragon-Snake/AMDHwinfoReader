@@ -90,7 +90,7 @@ def collect_amd_stats(config):
 # -------------------------
 
 def read_hwinfo_sensors(adapter_index=0, test=False):
-    """Read HWiNFO sensors for AMD GPU from registry"""
+    """Read HWiNFO sensors from registry"""
     sensors = {}
     try:
         base_path = r"SOFTWARE\HWiNFO64\VSB"
@@ -104,10 +104,9 @@ def read_hwinfo_sensors(adapter_index=0, test=False):
                     if test:
                         print(f"[TEST] Label{i}: {label}, ValueRaw{i}: {value_raw}")
 
-                    # Keep original GPU filter if not testing
+                    # Only collect GPU stats in normal mode
                     if not test:
-                        if label and "GPU" in label:
-                            sensors[label] = value_raw
+                        sensors[label] = value_raw
 
                     i += 1
                 except FileNotFoundError:
@@ -123,6 +122,11 @@ def main():
     logger.info("Starting AMD HWInfo monitor (local)...")
     print("Press Ctrl+C to stop.")
 
+    # One-time test print of all HWiNFO labels
+    print("=== HWiNFO Registry Labels (Test) ===")
+    read_hwinfo_sensors(test=True)
+    print("=== End Test ===\n")
+
     try:
         while True:
             stats = collect_amd_stats(config)
@@ -133,7 +137,6 @@ def main():
 
             # Print stats to terminal
             print(f"[{time.strftime('%H:%M:%S')}] GPU Stats: {stats['gpu']}")
-            read_hwinfo_sensors(test=True)  # prints all labels and raw values
 
             time.sleep(config.get("poll_interval", 1))
     except KeyboardInterrupt:
@@ -142,4 +145,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
