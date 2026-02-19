@@ -89,6 +89,33 @@ def collect_amd_stats(config):
 # Main Loop
 # -------------------------
 
+def read_hwinfo_sensors(adapter_index=0, test=False):
+    """Read HWiNFO sensors for AMD GPU from registry"""
+    sensors = {}
+    try:
+        base_path = r"SOFTWARE\HWiNFO64\VSB"
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_path) as key:
+            i = 0
+            while True:
+                try:
+                    label = winreg.QueryValueEx(key, f"Label{i}")[0]
+                    value_raw = winreg.QueryValueEx(key, f"ValueRaw{i}")[0]
+
+                    if test:
+                        print(f"[TEST] Label{i}: {label}, ValueRaw{i}: {value_raw}")
+
+                    # Keep original GPU filter if not testing
+                    if not test:
+                        if label and "GPU" in label:
+                            sensors[label] = value_raw
+
+                    i += 1
+                except FileNotFoundError:
+                    break
+    except Exception as e:
+        logger.warning(f"Failed to read HWiNFO registry: {e}")
+    return sensors
+
 def main():
     config = load_config()
     data_file = PROGRAM_DATA_DIR / "performance.json"
@@ -106,6 +133,7 @@ def main():
 
             # Print stats to terminal
             print(f"[{time.strftime('%H:%M:%S')}] GPU Stats: {stats['gpu']}")
+            read_hwinfo_sensors(test=True)  # prints all labels and raw values
 
             time.sleep(config.get("poll_interval", 1))
     except KeyboardInterrupt:
@@ -114,3 +142,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
