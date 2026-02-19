@@ -25,7 +25,7 @@ import subprocess
 # Update Checker
 # -------------------------
 
-CURRENT_VERSION = "0.0.0.1"
+CURRENT_VERSION = "0.0.1.0"
 SCRIPT_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amd_hwinfo_monitor.py"
 SERVICE_NAME = "AMDPerfMonitor"
 UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
@@ -242,7 +242,6 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
                 stats = collect_amd_stats(self.config)
                 with open(self.data_file, "w", encoding="utf-8") as f:
                     json.dump(stats, f, ensure_ascii=False, indent=2)
-                logger.info(f"GPU Stats Updated: {len(stats['gpu'])} sensors")
             except Exception as e:
                 logger.exception(f"Error collecting AMD stats: {e}")
             time.sleep(self.config.get("poll_interval", 1))
@@ -263,6 +262,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
