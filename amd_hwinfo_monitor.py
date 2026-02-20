@@ -330,7 +330,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
             now = time.time()
             if now - last_check > UPDATE_CHECK_INTERVAL:
                 check_for_updates()
-            l    ast_check = now
+                last_check = now
 
             # Wait in short intervals to be more responsive
             for _ in range(60):  # 60*1s = 60s total
@@ -346,6 +346,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
