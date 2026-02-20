@@ -36,22 +36,23 @@ For any errors or compatibility issues, always contact wallpaper maker first, si
 
 # For wallpaper developers:
 
-## Where to find GPU information:
-Gpu information should be stored at:`C:\ProgramData\AMDPerformanceMonitor\performance.json` (as can the logs, and other files), be sure to enable "Report Value in gadget" in HWiNFO for the values your wallpaper will use, as not doing so will make them either not update, or not show in the json file.
+## Where to find hardware information:
+Hardware information should be stored at:`C:\ProgramData\AMDPerformanceMonitor\performance.json` (as can the logs, and other files), be sure to enable "Report Value in gadget" in HWiNFO for the values your wallpaper will use, as not doing so will make them either not update, or not show in the json file.
 
 ## Where to find GPU name:
 This is currently under development, but will soon be added inside the json file as well.
 
-Matter of fact, any and all information will be under the json file. If other performance metrics are added, they may be under a different category (ie, CPU, GPU, etc)
+Matter of fact, any and all information will be under the json file.
 
 ## How values are stored:
 All values are stored in the json as-is, so for "GPU Utilization", for 45%, it will show as `45.0 %` in the json file, a decimal with a space between the numerical value and the unit, giving you the ability to either remove the unit(s), remove the space, remove the decimal, or just display it as-is.
 
 The only thing this does not store is the units, so 1,500 MB will be stored as only 1500.0. Cross referencing with HWiNFO is recommended when making a wallpaper using these values.
 
-The following image should server as a good example, and to show every single GPU value from HWiNFO (at leadt, every single value that a 6750 xt has, the amount of keys may differ per GPU)
+The following image should server as a good example, and to show every single GPU value from HWiNFO (at leadt, every single value that a 6750 xt has, the amount of keys may differ per GPU and other hardware)
 
-<img width="621" height="1083" alt="image" src="https://github.com/user-attachments/assets/47ffbf84-5e7d-4844-ba4f-3d5cabc0af42" />
+<img width="584" height="1321" alt="image" src="https://github.com/user-attachments/assets/a123c0d8-c55d-43df-bcba-d3223e9377ce" />
+
 
 
 # Compatibility:
