@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 AMD Performance Monitor Service (HWiNFO only)
 Runs in the background as a Windows Service and logs GPU stats to performance.json
@@ -169,7 +167,6 @@ def load_config():
 
 
 def read_hwinfo_sensors():
-    """Read HWiNFO sensors from registry"""
     sensors = {}
     try:
         base_path = r"SOFTWARE\HWiNFO64\VSB"
@@ -190,7 +187,6 @@ def read_hwinfo_sensors():
 
 
 def collect_amd_stats(config):
-    """Return a dict of AMD GPU stats only"""
     data = {"timestamp": time.time()}
     if config["collect"].get("hwinfo", True):
         data["gpu"] = read_hwinfo_sensors()
@@ -262,10 +258,3 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
-
-
-
-
-
-
-
