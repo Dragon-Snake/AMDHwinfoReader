@@ -23,7 +23,7 @@ import subprocess
 # Update Checker
 # -------------------------
 
-CURRENT_VERSION = "0.0.1.0"
+CURRENT_VERSION = "0.0.1.5"
 SCRIPT_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amd_hwinfo_monitor.py"
 SERVICE_NAME = "AMDPerfMonitor"
 UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
@@ -315,3 +315,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
