@@ -1,23 +1,23 @@
 @echo off
 SETLOCAL ENABLEDELAYEDEXPANSION
 
-REM -------------------------------
-REM Configuration
-REM -------------------------------
+REM ==================================================
+REM =================== CONFIGURE ====================
+REM ==================================================
 SET SERVICE_NAME=AMDPerfMonitor
 SET SCRIPT_URL=https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/refs/heads/main/amd_hwinfo_monitor.py
 SET INSTALL_DIR=%ProgramData%\AMDPerformanceMonitor
 SET SCRIPT_PATH=%INSTALL_DIR%\amd_hwinfo_monitor.py
 
 echo.
-echo ================================
+echo =================================
 echo AMD Performance Monitor Installer
-echo ================================
+echo =================================
 echo.
 
-REM -------------------------------
-REM Detect Python
-REM -------------------------------
+REM ==================================================
+REM ================= DETECT PYTHON ==================
+REM ==================================================
 SET PYTHON_EXE=
 
 for /f "tokens=*" %%i in ('where python 2^>nul') do (
@@ -33,9 +33,9 @@ exit /b
 echo Using Python at: %PYTHON_EXE%
 echo.
 
-REM -------------------------------
-REM Check if service already exists
-REM -------------------------------
+REM ==================================================
+REM ================= CHECK SERVICE ==================
+REM ==================================================
 sc query %SERVICE_NAME% >nul 2>&1
 IF %ERRORLEVEL% EQU 0 (
     echo Existing installation detected.
@@ -122,3 +122,4 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
