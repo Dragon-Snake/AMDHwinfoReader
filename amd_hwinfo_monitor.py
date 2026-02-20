@@ -41,6 +41,17 @@ def extract_version_from_script(script_text):
         return match.group(1)
     return None
 
+def read_local_script_version():
+    try:
+        current_file = Path(sys.argv[0])
+        text = current_file.read_text(encoding="utf-8")
+        version = extract_version_from_script(text)
+        if version:
+            return version
+    except Exception as e:
+        logger.warning(f"Failed to read local script version: {e}")
+    return CURRENT_VERSION
+
 def check_for_updates():
     try:
         logger.info("Checking for updates...")
@@ -57,9 +68,12 @@ def check_for_updates():
             logger.warning("Could not extract remote version.")
             return
 
-        logger.info(f"Remote: {remote_version} | Local: {CURRENT_VERSION}")
+        # Read the **actual file** version, not in-memory
+        local_version = read_local_script_version()
 
-        if not is_newer_version(remote_version, CURRENT_VERSION):
+        logger.info(f"Remote: {remote_version} | Local: {local_version}")
+
+        if not is_newer_version(remote_version, local_version):
             logger.info("Already up to date.")
             return
 
@@ -315,4 +329,5 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
