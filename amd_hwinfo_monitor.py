@@ -292,7 +292,20 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         self.update_thread = threading.Thread(target=self.update_loop, daemon=False)
         self.update_thread.start()
 
-        win32event.WaitForSingleObject(self.hWaitStop, win32event.INFINITE)
+        # Keep main thread alive, allow fast stop
+        while self.running:
+            result = win32event.WaitForSingleObject(self.hWaitStop, 1000)
+            if result == win32event.WAIT_OBJECT_0:
+                self.running = False
+                break
+
+    # Join threads on stop
+    if self.monitor_thread and self.monitor_thread.is_alive():
+        self.monitor_thread.join(timeout=5)
+    if self.update_thread and self.update_thread.is_alive():
+        self.update_thread.join(timeout=5)
+
+    logger.info("Service stopped cleanly.")
 
     def monitor_loop(self):
         while self.running:
@@ -333,6 +346,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
