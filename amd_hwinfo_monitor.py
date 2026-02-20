@@ -37,13 +37,6 @@ def is_newer_version(remote, local):
 
 def extract_version_from_script(script_text):
     match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', script_text)
-    return match.group(1) if match else None
-
-def extract_version_from_script(script_text):
-    """
-    Extracts CURRENT_VERSION = "x.x.x.x" from script text
-    """
-    match = re.search(r'CURRENT_VERSION\s*=\s*"([^"]+)"', script_text)
     if match:
         return match.group(1)
     return None
@@ -165,9 +158,13 @@ def load_config():
             logger.warning(f"Failed to load config.json: {e}")
     return DEFAULT_CONFIG.copy()
 
-
 def read_hwinfo_sensors():
-    sensors = {}
+    raw_sensors = _extract_hwinfo_raw()
+    return _classify_hwinfo(raw_sensors)
+
+def _extract_hwinfo_raw():
+    raw = {}
+
     try:
         base_path = r"SOFTWARE\HWiNFO64\VSB"
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_path) as key:
@@ -176,24 +173,63 @@ def read_hwinfo_sensors():
                 try:
                     label = winreg.QueryValueEx(key, f"Label{i}")[0]
                     value_raw = winreg.QueryValueEx(key, f"Value{i}")[0]
+
                     if label:
-                        sensors[label] = value_raw
+                        raw[label] = value_raw
+
                     i += 1
                 except FileNotFoundError:
                     break
+
     except Exception as e:
         logger.warning(f"Failed to read HWiNFO registry: {e}")
-    return sensors
 
+    return raw
+
+def _classify_hwinfo(raw_sensors):
+    structured = {
+        "gpu": {},
+        "cpu": {},
+        "memory": {},
+        "other": {}
+    }
+
+    for label, value in raw_sensors.items():
+        lower = label.lower()
+
+        if _is_gpu(label, lower):
+            structured["gpu"][label] = value
+        elif _is_cpu(label, lower):
+            structured["cpu"][label] = value
+        elif _is_memory(label, lower):
+            structured["memory"][label] = value
+        else:
+            structured["other"][label] = value
+
+    return structured
+
+def _is_gpu(label, lower):
+    return any(keyword in lower for keyword in [
+        "gpu", "graphics", "d3d"
+    ])
+
+def _is_cpu(label, lower):
+    return any(keyword in lower for keyword in [
+        "cpu", "core", "package"
+    ])
+
+def _is_memory(label, lower):
+    return any(keyword in lower for keyword in [
+        "memory", "ram", "dimm"
+    ])
 
 def collect_amd_stats(config):
-    data = {"timestamp": time.time()}
-    if config["collect"].get("hwinfo", True):
-        data["gpu"] = read_hwinfo_sensors()
-    else:
-        data["gpu"] = {}
-    return data
+    stats = {}
 
+    if config.get("collect", {}).get("hwinfo", False):
+        stats["hwinfo"] = read_hwinfo_sensors()
+
+    return stats
 
 # -------------------------
 # Windows Service
@@ -215,8 +251,17 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
     def SvcStop(self):
         logger.info("Service stop requested")
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+
         self.running = False
         win32event.SetEvent(self.hWaitStop)
+
+        if self.monitor_thread:
+            self.monitor_thread.join(timeout=10)
+
+        if hasattr(self, "update_thread") and self.update_thread:
+            self.update_thread.join(timeout=10)
+
+        logger.info("Service stopped cleanly.")
 
     def SvcDoRun(self):
         logger.info("AMD Performance Monitor Service starting...")
@@ -240,17 +285,29 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
                     json.dump(stats, f, ensure_ascii=False, indent=2)
             except Exception as e:
                 logger.exception(f"Error collecting AMD stats: {e}")
-            time.sleep(self.config.get("poll_interval", 1))
+
+            # Wait instead of sleep (interruptible)
+            wait_time_ms = int(self.config.get("poll_interval", 1) * 1000)
+            result = win32event.WaitForSingleObject(self.hWaitStop, wait_time_ms)
+
+            if result == win32event.WAIT_OBJECT_0:
+                break
 
     def update_loop(self):
         last_check = 0
+
         while self.running:
             now = time.time()
+
             if now - last_check > UPDATE_CHECK_INTERVAL:
                 check_for_updates()
                 last_check = now
-            time.sleep(60)
 
+            # Check every 60 seconds, but allow instant stop
+            result = win32event.WaitForSingleObject(self.hWaitStop, 60 * 1000)
+
+            if result == win32event.WAIT_OBJECT_0:
+                break
 
 # -------------------------
 # Entry Point
