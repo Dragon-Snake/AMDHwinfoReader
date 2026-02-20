@@ -42,14 +42,17 @@ def extract_version_from_script(script_text):
     return None
 
 def read_local_script_version():
+    current_file = Path(sys.argv[0])
     try:
-        current_file = Path(sys.argv[0])
         text = current_file.read_text(encoding="utf-8")
-        version = extract_version_from_script(text)
-        if version:
-            return version
-    except Exception as e:
-        logger.warning(f"Failed to read local script version: {e}")
+    except UnicodeDecodeError:
+        logger.warning("Failed to read as UTF-8, falling back to latin1")
+        text = current_file.read_text(encoding="latin1")  # safe for regex parsing
+
+    version = extract_version_from_script(text)
+    if version:
+        return version
+
     return CURRENT_VERSION
 
 def check_for_updates():
@@ -329,5 +332,6 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
