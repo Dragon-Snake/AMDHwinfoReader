@@ -285,11 +285,11 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         self.running = True
 
         # Start monitor thread
-        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=False)
+        self.monitor_thread = threading.Thread(target=self.monitor_loop, daemon=True)
         self.monitor_thread.start()
 
         # Start update check thread
-        self.update_thread = threading.Thread(target=self.update_loop, daemon=False)
+        self.update_thread = threading.Thread(target=self.update_loop, daemon=True)
         self.update_thread.start()
 
         # Keep main thread alive, allow fast stop
@@ -338,4 +338,5 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
