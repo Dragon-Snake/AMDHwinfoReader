@@ -56,7 +56,7 @@ The following image should server as a good example, and to show every single GP
 
 # Compatibility:
 
-## WHat GPU's does this support:
+## What GPU's does this support:
 So far, given how it just takes the "does it have/start with GPU?" stats, it should, in theory, support all GPU's from AMD to NVIDIA, and any other, as long as HWiNFO displays it properly, and you have all the requirements and proper settings enabled.
 
 # Q&A:
