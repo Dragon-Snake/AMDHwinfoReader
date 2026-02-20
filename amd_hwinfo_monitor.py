@@ -272,11 +272,9 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         self.running = False
         win32event.SetEvent(self.hWaitStop)
 
-        if self.monitor_thread and self.monitor_thread.is_alive():
-            self.monitor_thread.join(timeout=10)
-
-        if hasattr(self, "update_thread") and self.update_thread and self.update_thread.is_alive():
-            self.update_thread.join(timeout=10)
+        for t in [self.monitor_thread, getattr(self, "update_thread", None)]:
+            if t and t.is_alive():
+                t.join(timeout=5)
 
         logger.info("Service stopped cleanly.")
 
@@ -320,17 +318,22 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
         while self.running:
             now = time.time()
+            # Only run the update if interval has passed
             if now - last_check > UPDATE_CHECK_INTERVAL:
                 check_for_updates()
                 last_check = now
 
-            # Wait in short intervals to be more responsive
-            for _ in range(60):  # 60*1s = 60s total
-                if not self.running:
-                    break
-                result = win32event.WaitForSingleObject(self.hWaitStop, 1000)
+            # Wait in small increments to allow fast stop
+            wait_ms = 200  # 0.2 seconds
+            total_wait_ms = 60 * 1000  # 1 minute between checks (or whatever)
+            waited = 0
+
+            while self.running and waited < total_wait_ms:
+                result = win32event.WaitForSingleObject(self.hWaitStop, wait_ms)
                 if result == win32event.WAIT_OBJECT_0:
+                    self.running = False
                     break
+                waited += wait_ms
 
 # -------------------------
 # Entry Point
@@ -338,5 +341,6 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
