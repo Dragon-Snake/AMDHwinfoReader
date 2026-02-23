@@ -1,5 +1,5 @@
 """
-AMD Performance Monitor Service (HWiNFO only)
+AMD Performance Monitor Service
 Runs in the background as a Windows Service and logs GPU stats to performance.json
 """
 
@@ -341,3 +341,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
