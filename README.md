@@ -1,7 +1,7 @@
 # AMDHwinfoReader
-Reads and helps display AMD GPU stats from HWiNFO to a wallpaper in wallpaper engine. Should work with all GPU's, but I made this specifically for AMD GPU's, but since it just gets value from `GPU #0` in HWiNFO, it should work with any GPU given HWiNFO displays it as the first GPU.
+Reads and outpust sensor data from HWiNFO into JSON (mainly for wallpaper engine, but can be used for anything that can take json input, like to graph your hardware temps over time, etc)
 
-But I created this for mainly AMD GPU's, since I could not find any AMD GPU performance monitor wallpapers. Anyone is free to create a wallpaper that uses this.
+But I created this for mainly AMD GPU support (works with any system as long as HWiNFO works), since I could not find any AMD GPU performance monitor wallpapers. Anyone is free to create a wallpaper that uses this.
 
 If there are any issues, there is a troubleshooting section at the very bottom. Please go through those steps before making an issue.
 
