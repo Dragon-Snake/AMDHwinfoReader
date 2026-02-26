@@ -24,7 +24,7 @@ import subprocess
 # Update Checker
 # -------------------------
 
-CURRENT_VERSION = "0.0.1.5"
+CURRENT_VERSION = "0.0.2.0"
 SCRIPT_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amd_hwinfo_monitor.py"
 SERVICE_NAME = "AMDPerfMonitor"
 UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
@@ -166,6 +166,26 @@ DEFAULT_CONFIG = {
 # Helper Functions
 # -------------------------
 
+def get_active_user_profile_dir():
+    try:
+        # Get active console session ID
+        session_id = win32ts.WTSGetActiveConsoleSessionId()
+
+        if session_id == 0xFFFFFFFF:
+            return None  # No active session
+
+        user_token = win32ts.WTSQueryUserToken(session_id)
+
+        # Get user's profile path
+        import win32profile
+        profile_dir = win32profile.GetUserProfileDirectory(user_token)
+
+        return Path(profile_dir)
+
+    except Exception as e:
+        logger.warning(f"Could not get active user profile: {e}")
+        return None
+
 def load_config():
     if CONFIG_FILE.exists():
         try:
@@ -302,8 +322,20 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         while self.running:
             try:
                 stats = collect_amd_stats(self.config)
+                # Write main ProgramData file
                 with open(self.data_file, "w", encoding="utf-8") as f:
                     json.dump(stats, f, ensure_ascii=False, indent=2)
+
+                # Write per-user file (if active user exists)
+                user_profile = get_active_user_profile_dir()
+                if user_profile:
+                    user_dir = user_profile / "AMDPerformanceMonitor"
+                    user_dir.mkdir(parents=True, exist_ok=True)
+
+                    user_file = user_dir / "performance.json"
+
+                    with open(user_file, "w", encoding="utf-8") as f:
+                        json.dump(stats, f, ensure_ascii=False, indent=2)
             except Exception as e:
                 logger.exception(f"Error collecting AMD stats: {e}")
 
@@ -342,5 +374,6 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
