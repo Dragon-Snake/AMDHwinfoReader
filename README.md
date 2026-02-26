@@ -37,7 +37,8 @@ For any errors or compatibility issues, always contact wallpaper maker first, si
 # For wallpaper developers:
 
 ## Where to find hardware information:
-Hardware information should be stored at:`C:\ProgramData\AMDPerformanceMonitor\performance.json` (as can the logs, and other files), be sure to enable "Report Value in gadget" in HWiNFO for the values your wallpaper will use, as not doing so will make them either not update, or not show in the json file.
+Hardware information should be stored at: `%USERPROFILE%\AMDPerformanceMonitor\performance.json`, and the main json is stored in: `C:\ProgramData\AMDPerformanceMonitor\performance.json`
+When making a wallpaper, use `%USERPROFILE%\AMDPerformanceMonitor\performance.json` to extract the json.
 
 ## Where to find GPU name:
 This is currently under development, but will soon be added inside the json file as well.
