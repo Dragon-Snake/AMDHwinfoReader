@@ -11,6 +11,7 @@ import threading
 import logging
 from pathlib import Path
 import winreg
+import win32ts
 import win32service
 import win32serviceutil
 import win32event
@@ -341,4 +342,5 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
