@@ -19,6 +19,9 @@ import servicemanager
 import requests
 import re
 import subprocess
+import socket
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # -------------------------
 # Update Checker
@@ -56,11 +59,35 @@ def read_local_script_version():
 
     return CURRENT_VERSION
 
+def create_session():
+    session = requests.Session()
+
+    retry = Retry(
+        total=5,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+        raise_on_status=False
+    )
+
+    adapter = HTTPAdapter(max_retries=retry)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+
+    return session
+
 def check_for_updates():
     try:
         logger.info("Checking for updates...")
 
-        r = requests.get(SCRIPT_URL, timeout=10)
+        session = create_session()
+
+        try:
+            r = session.get(SCRIPT_URL, timeout=(5, 10))
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"Network error during update check: {e}")
+            return
+
         if r.status_code != 200:
             logger.warning(f"Failed to download script ({r.status_code})")
             return
@@ -72,7 +99,6 @@ def check_for_updates():
             logger.warning("Could not extract remote version.")
             return
 
-        # Read the **actual file** version, not in-memory
         local_version = read_local_script_version()
 
         logger.info(f"Remote: {remote_version} | Local: {local_version}")
@@ -374,6 +400,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
 
 
 
