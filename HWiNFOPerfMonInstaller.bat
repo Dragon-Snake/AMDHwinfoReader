@@ -220,15 +220,27 @@ if not exist "%SCRIPT_PATH%" (
     exit /b
 )
 
-REM Start service
 echo Starting service...
-sc start %SERVICE_NAME%
+sc start %SERVICE_NAME% >nul
+
+set WAITCOUNT=0
+
+:wait_running
 sc query %SERVICE_NAME% | find "RUNNING" >nul
-IF ERRORLEVEL 1 (
-    echo Service failed to start.
+if !errorlevel! equ 0 goto running
+
+set /a WAITCOUNT+=1
+if !WAITCOUNT! geq 30 (
+    echo Service did not reach RUNNING state in time.
     pause
     exit /b
 )
+
+timeout /t 1 >nul
+goto wait_running
+
+:running
+echo Service is running successfully.
 
 echo.
 echo Update complete!
