@@ -205,7 +205,14 @@ if exist "%SCRIPT_PATH%" (
 
 REM Download latest script
 echo Downloading latest version...
-powershell -Command "try { Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%SCRIPT_PATH%' -ErrorAction Stop } catch { exit 1 }"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"try { Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%SCRIPT_PATH%' -ErrorAction Stop; exit 0 } catch { Write-Host $_; exit 1 }"
+
+IF ERRORLEVEL 1 (
+    echo Download failed.
+    pause
+    exit /b
+)
 
 IF ERRORLEVEL 1 (
     echo Download failed. Restoring backup...
@@ -246,3 +253,4 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
