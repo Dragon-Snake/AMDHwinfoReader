@@ -3,7 +3,9 @@ SETLOCAL ENABLEDELAYEDEXPANSION
 
 net session >nul 2>&1
 if %errorlevel% neq 0 (
-    powershell -Command "Start-Process '%~f0' -ArgumentList '%*' -Verb RunAs"
+    echo Requesting administrator privileges...
+    powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+    "Start-Process -FilePath '%~f0' -Verb RunAs"
     exit /b
 )
 
@@ -234,3 +236,4 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
