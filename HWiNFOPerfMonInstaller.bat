@@ -52,7 +52,7 @@ exit /b
 echo Found Python. Verifying version...
 
 REM Get full version string (e.g., 3.11.7)
-for /f "tokens=2" %%v in ('"%PYTHON_EXE%" %PYTHON_ARGS% -c "import sys; print(sys.version.split()[0])"') do (
+for /f "tokens=2" %%v in ('"%PYTHON_EXE%" %PYTHON_ARGS% --version 2^>^&1') do (
     set PY_VER=%%v
 )
 
@@ -235,6 +235,7 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
 
 
 
