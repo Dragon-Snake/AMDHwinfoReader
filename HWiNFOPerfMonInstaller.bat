@@ -27,16 +27,19 @@ REM ==================================================
 REM ================= DETECT PYTHON ==================
 REM ==================================================
 SET PYTHON_EXE=
+SET PYTHON_ARGS=
 
 REM Try python launcher first (preferred on Windows)
 for /f "tokens=*" %%i in ('where py 2^>nul') do (
-    SET PYTHON_EXE=py -3
+    SET PYTHON_EXE=py
+    SET PYTHON_ARGS=-3
     goto :check_python
 )
 
 REM Fallback to python in PATH
 for /f "tokens=*" %%i in ('where python 2^>nul') do (
     SET PYTHON_EXE=%%i
+    SET PYTHON_ARGS=
     goto :check_python
 )
 
@@ -48,7 +51,7 @@ exit /b
 echo Found Python. Verifying version...
 
 REM Get full version string (e.g., 3.11.7)
-for /f "tokens=2 delims= " %%v in ('"%PYTHON_EXE%" --version 2^>^&1') do (
+for /f "tokens=2" %%v in ('"%PYTHON_EXE%" %PYTHON_ARGS% -c "import sys; print(sys.version.split()[0])"') do (
     set PY_VER=%%v
 )
 
@@ -78,7 +81,7 @@ if !PY_MAJOR! EQU 3 if !PY_MINOR! LSS 10 (
 )
 
 echo Using Python:
-"%PYTHON_EXE%" --version
+"%PYTHON_EXE%" %PYTHON_ARGS% --version
 echo.
 
 REM ==================================================
@@ -104,9 +107,9 @@ if not exist "%INSTALL_DIR%" (
 
 REM Install required packages
 echo Installing required Python packages...
-"%PYTHON_EXE%" -m ensurepip --upgrade >nul 2>&1
-"%PYTHON_EXE%" -m pip install --upgrade pip requests pywin32
-"%PYTHON_EXE%" -m pywin32_postinstall -install
+"%PYTHON_EXE%" %PYTHON_ARGS% -m ensurepip --upgrade >nul 2>&1
+"%PYTHON_EXE%" %PYTHON_ARGS% -m pip install --upgrade pip requests pywin32
+"%PYTHON_EXE%" %PYTHON_ARGS% -m pywin32_postinstall -install
 
 IF ERRORLEVEL 1 (
     echo Failed to install required packages.
@@ -125,7 +128,7 @@ IF ERRORLEVEL 1 (
 
 REM Install service
 echo Installing service...
-"%PYTHON_EXE%" "%SCRIPT_PATH%" install
+"%PYTHON_EXE%" %PYTHON_ARGS% "%SCRIPT_PATH%" install
 IF ERRORLEVEL 1 (
     echo Service installation failed.
     pause
@@ -140,7 +143,7 @@ IF ERRORLEVEL 1 (
 )
 
 REM Start service
-"%PYTHON_EXE%" "%SCRIPT_PATH%" start
+"%PYTHON_EXE%" %PYTHON_ARGS% "%SCRIPT_PATH%" start
 sc query %SERVICE_NAME% | find "RUNNING" >nul
 IF ERRORLEVEL 1 (
     echo Service failed to start.
@@ -185,9 +188,9 @@ goto wait_stop
 
 REM Ensure required Python packages are installed
 echo Verifying Python dependencies...
-"%PYTHON_EXE%" -m ensurepip --upgrade >nul 2>&1
-"%PYTHON_EXE%" -m pip install --upgrade requests pywin32
-"%PYTHON_EXE%" -m pywin32_postinstall -install >nul 2>&1
+"%PYTHON_EXE%" %PYTHON_ARGS% -m ensurepip --upgrade >nul 2>&1
+"%PYTHON_EXE%" %PYTHON_ARGS% -m pip install --upgrade requests pywin32
+"%PYTHON_EXE%" %PYTHON_ARGS% -m pywin32_postinstall -install >nul 2>&1
 IF ERRORLEVEL 1 (
     echo Failed to verify/install Python dependencies.
     sc start %SERVICE_NAME%
