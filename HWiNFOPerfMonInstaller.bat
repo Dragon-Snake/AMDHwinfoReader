@@ -240,9 +240,6 @@ IF ERRORLEVEL 1 (
     goto wait_running
 )
 
-:restart_ok
-echo Service restarted successfully.
-
 echo Verifying downloaded file...
 
 for %%F in ("%SCRIPT_PATH%") do if %%~zF==0 (
@@ -256,9 +253,6 @@ for %%F in ("%SCRIPT_PATH%") do if %%~zF==0 (
 )
 
 echo File verified.
-
-echo Starting service...
-sc start %SERVICE_NAME% >nul
 
 set WAITCOUNT=0
 
