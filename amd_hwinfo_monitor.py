@@ -323,10 +323,14 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
             if t and t.is_alive():
                 t.join(timeout=5)
 
+        self.ReportServiceStatus(win32service.SERVICE_STOPPED)
         logger.info("Service stopped cleanly.")
 
     def SvcDoRun(self):
         logger.info("AMD Performance Monitor Service starting...")
+        servicemanager.LogInfoMsg("AMD Service starting...")
+        self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
+        
         self.running = True
 
         # Start monitor thread
@@ -336,6 +340,8 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         # Start update check thread
         self.update_thread = threading.Thread(target=self.update_loop, daemon=True)
         self.update_thread.start()
+
+        self.ReportServiceStatus(win32service.SERVICE_RUNNING)
 
         # Keep main thread alive, allow fast stop
         while self.running:
@@ -389,3 +395,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
