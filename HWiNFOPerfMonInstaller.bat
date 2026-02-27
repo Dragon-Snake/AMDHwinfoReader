@@ -132,7 +132,7 @@ echo Verifying downloaded file...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "try { ^
-    if (!(Test-Path '%SCRIPT_PATH%')) { exit 1 }; ^
+    if (!(Test-path '%SCRIPT_PATH%')) { exit 1 }; ^
     $item = Get-Item '%SCRIPT_PATH%'; ^
     if ($item.Length -le 0) { exit 1 }; ^
     exit 0 ^
@@ -277,3 +277,4 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
