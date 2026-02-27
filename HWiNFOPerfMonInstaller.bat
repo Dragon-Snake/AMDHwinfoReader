@@ -131,12 +131,15 @@ IF ERRORLEVEL 1 (
 echo Verifying downloaded file...
 
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-"if (!(Test-Path '%SCRIPT_PATH%')) { exit 1 }; ^
- if ((Get-Item '%SCRIPT_PATH%').Length -eq 0) { exit 1 }; ^
- exit 0"
+"try { ^
+    if (!(Test-Path '%SCRIPT_PATH%')) { exit 1 }; ^
+    $item = Get-Item '%SCRIPT_PATH%'; ^
+    if ($item.Length -le 0) { exit 1 }; ^
+    exit 0 ^
+} catch { exit 1 }"
 
 IF ERRORLEVEL 1 (
-    echo File verification failed (file missing or empty).
+    echo File verification failed.
     pause
     exit /b
 )
@@ -205,7 +208,6 @@ goto wait_stop
 
 REM Ensure required Python packages are installed
 echo Verifying Python dependencies...
-"%PYTHON_EXE%" %PYTHON_ARGS% -m ensurepip --upgrade >nul 2>&1
 "%PYTHON_EXE%" %PYTHON_ARGS% -m pip install --upgrade requests pywin32
 
 IF ERRORLEVEL 1 (
@@ -235,20 +237,7 @@ IF ERRORLEVEL 1 (
     sc start %SERVICE_NAME% >nul
 
     set WAITCOUNT=0
-
-    :restart_wait
-    sc query %SERVICE_NAME% | find "RUNNING" >nul
-    if !errorlevel! equ 0 goto restart_ok
-
-    set /a WAITCOUNT+=1
-    if !WAITCOUNT! geq 30 (
-        echo Service failed to restart.
-        pause
-        exit /b
-    )
-
-    timeout /t 1 >nul
-    goto restart_wait
+    goto wait_running
 )
 
 :restart_ok
@@ -294,3 +283,4 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
+
