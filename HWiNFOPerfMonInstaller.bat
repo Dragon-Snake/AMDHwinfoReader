@@ -110,7 +110,6 @@ REM Install required packages
 echo Installing required Python packages...
 "%PYTHON_EXE%" %PYTHON_ARGS% -m ensurepip --upgrade >nul 2>&1
 "%PYTHON_EXE%" %PYTHON_ARGS% -m pip install --upgrade pip requests pywin32
-"%PYTHON_EXE%" %PYTHON_ARGS% -m pywin32_postinstall -install
 
 IF ERRORLEVEL 1 (
     echo Failed to install required packages.
@@ -191,7 +190,7 @@ REM Ensure required Python packages are installed
 echo Verifying Python dependencies...
 "%PYTHON_EXE%" %PYTHON_ARGS% -m ensurepip --upgrade >nul 2>&1
 "%PYTHON_EXE%" %PYTHON_ARGS% -m pip install --upgrade requests pywin32
-"%PYTHON_EXE%" %PYTHON_ARGS% -m pywin32_postinstall -install >nul 2>&1
+
 IF ERRORLEVEL 1 (
     echo Failed to verify/install Python dependencies.
     sc start %SERVICE_NAME%
@@ -235,7 +234,3 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
-
-
-
-
