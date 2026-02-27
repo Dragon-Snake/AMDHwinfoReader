@@ -128,6 +128,21 @@ IF ERRORLEVEL 1 (
     exit /b
 )
 
+echo Verifying downloaded file...
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+"if (!(Test-Path '%SCRIPT_PATH%')) { exit 1 }; ^
+ if ((Get-Item '%SCRIPT_PATH%').Length -eq 0) { exit 1 }; ^
+ exit 0"
+
+IF ERRORLEVEL 1 (
+    echo File verification failed (file missing or empty).
+    pause
+    exit /b
+)
+
+echo File verified.
+
 REM Install service
 echo Installing service...
 "%PYTHON_EXE%" %PYTHON_ARGS% "%SCRIPT_PATH%" install
@@ -211,23 +226,47 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
 "try { Invoke-WebRequest -Uri '%SCRIPT_URL%' -OutFile '%SCRIPT_PATH%' -ErrorAction Stop; exit 0 } catch { Write-Host $_; exit 1 }"
 
 IF ERRORLEVEL 1 (
-    echo Download failed.
-    pause
-    exit /b
+    echo Download failed. Restoring backup...
+    if exist "%SCRIPT_PATH%.bak" (
+        copy /y "%SCRIPT_PATH%.bak" "%SCRIPT_PATH%" >nul
+    )
+    echo Attempting to restart service...
+
+    sc start %SERVICE_NAME% >nul
+
+    set WAITCOUNT=0
+
+    :restart_wait
+    sc query %SERVICE_NAME% | find "RUNNING" >nul
+    if !errorlevel! equ 0 goto restart_ok
+
+    set /a WAITCOUNT+=1
+    if !WAITCOUNT! geq 30 (
+        echo Service failed to restart.
+        pause
+        exit /b
+    )
+
+    timeout /t 1 >nul
+    goto restart_wait
 )
 
-IF ERRORLEVEL 1 (
-    echo Download failed. Restoring backup...
-    copy /y "%SCRIPT_PATH%.bak" "%SCRIPT_PATH%" >nul
+:restart_ok
+echo Service restarted successfully.
+
+echo Verifying downloaded file...
+
+for %%F in ("%SCRIPT_PATH%") do if %%~zF==0 (
+    echo File verification failed (file is empty).
+    if exist "%SCRIPT_PATH%.bak" (
+        copy /y "%SCRIPT_PATH%.bak" "%SCRIPT_PATH%" >nul
+    )
     sc start %SERVICE_NAME%
     pause
     exit /b
 )
 
-if not exist "%SCRIPT_PATH%" (
-    echo Download failed.
-    exit /b
-)
+echo File verified.
 
 echo Starting service...
 sc start %SERVICE_NAME% >nul
@@ -255,5 +294,3 @@ echo.
 echo Update complete!
 pause
 ENDLOCAL
-
-
