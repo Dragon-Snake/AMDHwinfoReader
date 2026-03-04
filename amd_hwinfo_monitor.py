@@ -22,12 +22,13 @@ import subprocess
 import socket
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from logging.handlers import RotatingFileHandler
 
 # -------------------------
 # Update Checker
 # -------------------------
 
-CURRENT_VERSION = "0.0.2.0"
+CURRENT_VERSION = "0.0.2.5"
 SCRIPT_URL = "https://raw.githubusercontent.com/Dragon-Snake/AMDHwinfoReader/main/amd_hwinfo_monitor.py"
 SERVICE_NAME = "AMDPerfMonitor"
 UPDATE_CHECK_INTERVAL = 60*60*2  # check every 2 hours
@@ -170,14 +171,24 @@ PROGRAM_DATA_DIR = Path(os.environ.get("ProgramData", r"C:\ProgramData")) / "AMD
 PROGRAM_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 LOG_FILE = PROGRAM_DATA_DIR / "amd_performance.log"
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler(LOG_FILE, encoding='utf-8')
-    ]
+handler = RotatingFileHandler(
+    LOG_FILE,
+    maxBytes=1_000_000,   # 1 MB per file
+    backupCount=3,       # keep 3 old logs
+    encoding="utf-8"
 )
+
+formatter = logging.Formatter(
+    "%(asctime)s - %(levelname)s - %(message)s"
+)
+
+handler.setFormatter(formatter)
+
 logger = logging.getLogger("AMDPerfMonitor")
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
+logger.propagate = False
+logger.info("Logging initialized with rotation.")
 
 CONFIG_FILE = PROGRAM_DATA_DIR / "config.json"
 DEFAULT_CONFIG = {
@@ -194,22 +205,26 @@ DEFAULT_CONFIG = {
 
 def get_active_user_profile_dir():
     try:
-        # Get active console session ID
         session_id = win32ts.WTSGetActiveConsoleSessionId()
 
         if session_id == 0xFFFFFFFF:
-            return None  # No active session
+            return None  # No active session (normal)
 
-        user_token = win32ts.WTSQueryUserToken(session_id)
+        try:
+            user_token = win32ts.WTSQueryUserToken(session_id)
+        except Exception as e:
+            # Suppress normal "token does not exist" (1008)
+            if "1008" in str(e):
+                return None
+            logger.warning(f"Unexpected WTS token error: {e}")
+            return None
 
-        # Get user's profile path
         import win32profile
         profile_dir = win32profile.GetUserProfileDirectory(user_token)
-
         return Path(profile_dir)
 
     except Exception as e:
-        logger.warning(f"Could not get active user profile: {e}")
+        logger.warning(f"Unexpected user profile error: {e}")
         return None
 
 def load_config():
@@ -222,15 +237,11 @@ def load_config():
             logger.warning(f"Failed to load config.json: {e}")
     return DEFAULT_CONFIG.copy()
 
-def read_hwinfo_sensors():
-    raw_sensors = _extract_hwinfo_raw()
-    return _classify_hwinfo(raw_sensors)
-
 def _extract_hwinfo_raw():
     raw = {}
+    base_path = r"SOFTWARE\HWiNFO64\VSB"
 
     try:
-        base_path = r"SOFTWARE\HWiNFO64\VSB"
         with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, base_path) as key:
             i = 0
             while True:
@@ -243,10 +254,13 @@ def _extract_hwinfo_raw():
 
                     i += 1
                 except FileNotFoundError:
-                    break
+                    break  # End of values (normal)
 
+    except FileNotFoundError:
+        # HWiNFO not running or VSB not available (normal)
+        return raw
     except Exception as e:
-        logger.warning(f"Failed to read HWiNFO registry: {e}")
+        logger.warning(f"Unexpected HWiNFO registry error: {e}")
 
     return raw
 
@@ -311,6 +325,7 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
         self.config = load_config()
         self.data_file = PROGRAM_DATA_DIR / "performance.json"
         self.monitor_thread = None
+        self.hwinfo_available = None
 
     def SvcStop(self):
         logger.info("Service stop requested")
@@ -350,10 +365,29 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
                 self.running = False
                 break
 
+    def read_hwinfo_sensors(self):
+        raw_sensors = _extract_hwinfo_raw()
+        available = bool(raw_sensors)
+
+        if self.hwinfo_available is None:
+            self.hwinfo_available = available
+
+        elif available != self.hwinfo_available:
+            if available:
+                logger.info("HWiNFO sensors detected.")
+            else:
+                logger.info("HWiNFO sensors unavailable.")
+            self.hwinfo_available = available
+
+        return _classify_hwinfo(raw_sensors)
+
     def monitor_loop(self):
         while self.running:
             try:
-                stats = collect_amd_stats(self.config)
+                stats = {}
+
+                if self.config.get("collect", {}).get("hwinfo", False):
+                    stats["hwinfo"] = self.read_hwinfo_sensors()
                 # Write main ProgramData file
                 with open(self.data_file, "w", encoding="utf-8") as f:
                     json.dump(stats, f, ensure_ascii=False, indent=2)
