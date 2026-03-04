@@ -388,9 +388,13 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
                 if self.config.get("collect", {}).get("hwinfo", False):
                     stats["hwinfo"] = self.read_hwinfo_sensors()
+                    
                 # Write main ProgramData file
-                with open(self.data_file, "w", encoding="utf-8") as f:
+                tmp_file = self.data_file.with_suffix(".tmp")
+                with open(tmp_file, "w", encoding="utf-8") as f:
                     json.dump(stats, f, ensure_ascii=False, indent=2)
+
+                tmp_file.replace(self.data_file)
 
                 # Write per-user file (if active user exists)
                 user_profile = get_active_user_profile_dir()
@@ -400,8 +404,11 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
                     user_file = user_dir / "performance.json"
 
-                    with open(user_file, "w", encoding="utf-8") as f:
+                    user_tmp = user_file.with_suffix(".tmp")
+                    with open(user_tmp, "w", encoding="utf-8") as f:
                         json.dump(stats, f, ensure_ascii=False, indent=2)
+
+                    user_tmp.replace(user_file)
             except Exception as e:
                 logger.exception(f"Error collecting AMD stats: {e}")
 
@@ -429,3 +436,4 @@ class AMDPerfMonitorService(win32serviceutil.ServiceFramework):
 
 if __name__ == "__main__":
     win32serviceutil.HandleCommandLine(AMDPerfMonitorService)
+
