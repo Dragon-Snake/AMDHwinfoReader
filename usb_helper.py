@@ -1,4 +1,4 @@
-# usb_helper.py
+# usb_helper.py | !!!THIS IS A TEST, DO NOT ATTEMPT TO INSTAL/USE!!!
 
 import time
 import wmi
